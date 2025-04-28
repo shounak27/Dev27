@@ -1,0 +1,80 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.special import erfc
+
+# Parameters
+N = 10**6
+np.random.seed(100)
+Eb_NO_dB = np.arange(-3, 11)
+
+# Transmitter
+ip = np.random.randint(0, 2, N)
+s = 2*ip - 1  # BPSK symbols
+
+# Noise
+n = (np.random.randn(N) + 1j*np.random.randn(N)) / np.sqrt(2)
+
+# Preallocate
+nErr_AWGN = np.zeros(len(Eb_NO_dB))
+nErr_Rayleigh = np.zeros(len(Eb_NO_dB))
+
+for i, EbNo in enumerate(Eb_NO_dB):
+    noise_scale = 10**(-EbNo/20)
+    
+    # AWGN Channel
+    y_awgn = s + noise_scale * n
+    
+    # Rayleigh Channel
+    h = (np.random.randn(N) + 1j*np.random.randn(N)) / np.sqrt(2)
+    y_rayleigh = h * s + noise_scale * n
+    y_eq = y_rayleigh / h
+    
+    # Receiver Decisions
+    ipHat_AWGN = np.real(y_awgn) > 0
+    ipHat_Rayleigh = np.real(y_eq) > 0
+    
+    # Error Count
+    nErr_AWGN[i] = np.sum(ip != ipHat_AWGN)
+    nErr_Rayleigh[i] = np.sum(ip != ipHat_Rayleigh)
+
+# BER
+simBer_AWGN = nErr_AWGN / N
+simBer_Rayleigh = nErr_Rayleigh / N
+
+# Theoretical BER
+theoryBer_AWGN = 0.5 * erfc(np.sqrt(10**(Eb_NO_dB/10)))
+theoryBer_Rayleigh = 0.5 * (1 - np.sqrt(10**(Eb_NO_dB/10) / (1 + 10**(Eb_NO_dB/10))))
+
+# Plot
+plt.figure()
+plt.semilogy(Eb_NO_dB, theoryBer_AWGN, 'b.-', label='Theory (AWGN)')
+plt.semilogy(Eb_NO_dB, simBer_AWGN, 'mx-', label='Simulation (AWGN)')
+plt.grid(True)
+plt.axis([-3, 10, 1e-5, 0.5])
+plt.xlabel('Eb/No (dB)')
+plt.ylabel('BER')
+plt.legend()
+plt.title('BPSK over AWGN')
+
+plt.figure()
+plt.semilogy(Eb_NO_dB, theoryBer_Rayleigh, 'r.-', label='Theory (Rayleigh)')
+plt.semilogy(Eb_NO_dB, simBer_Rayleigh, 'go-', label='Simulation (Rayleigh)')
+plt.grid(True)
+plt.axis([-3, 10, 1e-5, 0.5])
+plt.xlabel('Eb/No (dB)')
+plt.ylabel('BER')
+plt.legend()
+plt.title('BPSK over Rayleigh')
+
+plt.figure()
+plt.semilogy(Eb_NO_dB, theoryBer_AWGN, 'b.-', label='Theory (AWGN)')
+plt.semilogy(Eb_NO_dB, simBer_AWGN, 'mx-', label='Simulation (AWGN)')
+plt.semilogy(Eb_NO_dB, theoryBer_Rayleigh, 'r.-', label='Theory (Rayleigh)')
+plt.semilogy(Eb_NO_dB, simBer_Rayleigh, 'go-', label='Simulation (Rayleigh)')
+plt.grid(True)
+plt.axis([-3, 10, 1e-5, 0.5])
+plt.xlabel('Eb/No (dB)')
+plt.ylabel('BER')
+plt.legend()
+plt.title('BPSK over AWGN and Rayleigh')
+plt.show()
